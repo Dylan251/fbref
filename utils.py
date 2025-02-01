@@ -17,10 +17,9 @@ def parse_player_info(player_info_soup: BeautifulSoup) -> dict:
             player_info['Position'] = position_p.split(':')[1].strip()
             player_info['Footed'] = position_footed.split(':')[1].strip()
         except:
-            pass
+            position_p = p_player_info[0].text.split(':')[1].strip()
+            player_info['Position'] = position_p
 
-        position_p = p_player_info[0].text.split(':')[1].strip()
-        player_info['Position'] = position_p
 
     # Age
     if p_player_info[1]:
@@ -33,7 +32,7 @@ def parse_player_info(player_info_soup: BeautifulSoup) -> dict:
     return player_info
 
 
-def table_parse(table_html: BeautifulSoup) -> list:
+def parse_player_table(table_html: BeautifulSoup) -> list:
     '''Table parser function'''
     # Extract headers
     headers = [th.get_text(strip=True) for th in table_html.find('thead').find_all('th')]
@@ -48,3 +47,54 @@ def table_parse(table_html: BeautifulSoup) -> list:
         rows.append(row_data)
     
     return rows
+
+
+def parse_club_players(soup: BeautifulSoup) -> list:
+        
+    # Initialize a list to store all players' data
+    all_players = []
+
+    # Find all player blocks
+    player_blocks = soup.find_all(['h2', 'div'], recursive=True)
+
+    # Temporary variables to store player info and table data
+    current_player = {}
+    current_table = None
+
+    # Iterate through the player blocks
+    for block in player_blocks:
+        # Check if the block is a player name (h2 tag)
+        if block.name == 'h2':
+            # If we have a current player, add them to the list
+            if current_player:
+                all_players.append(current_player)
+                current_player = {}  # Reset for the next player
+
+            # Extract player name
+            player_name = block.get_text(strip=True)
+            current_player['Name'] = player_name
+
+        # Check if the block is player info (div with display:flex)
+        elif block.name == 'div' and 'style' in block.attrs and 'display:flex' in block['style']:
+            # Extract player info
+            player_info = {}
+            info_div = block.find('div', class_='roster-player-info')
+
+            player_info = parse_player_info(info_div)
+
+            # Add player info to the current player
+            current_player['Info'] = player_info
+
+        # Check if the block is a table wrapper (div with class table_wrapper)
+        elif block.name == 'div' and 'class' in block.attrs and 'table_wrapper' in block['class']:
+            # Extract table data
+            table_data = parse_player_table(block)
+
+            # Add table data to the current player
+            current_player['Table'] = table_data
+
+    # Add the last player to the list
+    if current_player:
+        all_players.append(current_player)
+    
+    return all_players
