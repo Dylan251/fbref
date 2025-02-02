@@ -1,4 +1,21 @@
 from bs4 import BeautifulSoup
+from data_class import Club 
+
+def parse_club(team_cell) -> dict:
+    '''Parse club information from league page'''
+    if team_cell:
+        # Extract club name and URL
+        link = team_cell.find('a')
+        if link:
+            club_name = link.text.strip()
+            club_url = 'https://fbref.com' + link['href']
+            club_object = Club(club_name, club_url, [])
+            return club_object
+        else:
+            return None
+    else:
+        return None
+
 
 def parse_player_info(player_info_soup: BeautifulSoup) -> dict:
     '''Parse player information from player page'''
